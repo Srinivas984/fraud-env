@@ -1,0 +1,108 @@
+name: Fraud Detection Environment
+version: "1.0"
+description: OpenEnv RL environment for training intelligent fraud detection agents
+metadata:
+  author: "Fraud Detection Team"
+  task_count: 3
+  difficulty_levels: ["easy", "medium", "hard"]
+  created: "2024-01-15"
+
+tasks:
+  - name: single_fraud
+    difficulty: easy
+    description: "5 transactions with 1 unmistakable fraud attempt"
+    num_transactions: 5
+    fraud_count: 1
+    max_score: 1.0
+    expected_agent_score: 0.85
+
+  - name: multi_pattern_fraud
+    difficulty: medium
+    description: "9 transactions with coordinated fraud ring (6 frauds)"
+    num_transactions: 9
+    fraud_count: 6
+    max_score: 1.0
+    expected_agent_score: 0.85
+
+  - name: adaptive_fraud_attack
+    difficulty: hard
+    description: "20 transactions with behavioral masking (8 frauds)"
+    num_transactions: 20
+    fraud_count: 8
+    max_score: 1.0
+    expected_agent_score: 0.50
+
+action_schema:
+  type: object
+  properties:
+    decision:
+      type: string
+      enum: ["allow", "flag", "block"]
+      description: "Fraud decision on current transaction"
+
+observation_schema:
+  type: object
+  properties:
+    current_transaction:
+      type: object
+      description: "Current transaction details"
+    user_profile:
+      type: object
+      description: "User behavior context"
+    recent_history:
+      type: array
+      description: "Last 4 transactions"
+    anomaly_alerts:
+      type: array
+      description: "Detected anomalies (new device, impossible travel, etc.)"
+    step_num:
+      type: integer
+      description: "Current step number"
+    total_steps:
+      type: integer
+      description: "Total steps in episode"
+    episode_complete:
+      type: boolean
+      description: "Whether episode is done"
+
+endpoints:
+  http:
+    - path: /reset
+      method: POST
+      description: "Initialize new episode"
+      input: '{"task_name": "single_fraud|multi_pattern_fraud|adaptive_fraud_attack"}'
+      output: "Initial observation"
+
+    - path: /step
+      method: POST
+      description: "Make fraud decision"
+      input: '{"decision": "allow|flag|block"}'
+      output: "Next observation, reward, done flag, info"
+
+    - path: /state
+      method: GET
+      description: "Get current episode state"
+      output: "Episode state JSON"
+
+    - path: /health
+      method: GET
+      description: "Server health check"
+      output: '{"status": "healthy"}'
+
+  websocket:
+    - path: /ws
+      description: "Real-time WebSocket communication"
+      messages:
+        - type: reset
+          payload: '{"type": "reset", "task_name": "..."}'
+        - type: step
+          payload: '{"type": "step", "decision": "..."}'
+
+reward_function:
+  fraud_block: 1.0
+  fraud_flag: 0.3
+  fraud_allow: -1.0
+  legit_allow: 0.5
+  legit_flag: 0.1
+  legit_block: -0.7
+  normalization: "min(1.0, max(0.0, total_reward / max_possible))"
