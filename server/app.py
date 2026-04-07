@@ -21,7 +21,7 @@ environment = FraudEnvironment()
 
 
 @app.post("/reset")
-async def reset(body: dict = Body(...)):
+async def reset(body: dict = Body(default={})):
     """
     Reset environment and return initial observation.
     
