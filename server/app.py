@@ -141,3 +141,19 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
     except Exception as e:
         print(f"WebSocket error: {e}")
+
+
+def main():
+    """Entry point for running the server."""
+    import uvicorn
+    
+    uvicorn.run(
+        "server.app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False
+    )
+
+
+if __name__ == "__main__":
+    main()
