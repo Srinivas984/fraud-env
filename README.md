@@ -1,15 +1,12 @@
-<<<<<<< HEAD
 ---
 title: Fraud Investigator Env
-emoji: 💻
-colorFrom: red
-colorTo: indigo
+emoji: 🕵️
+colorFrom: blue
+colorTo: purple
 sdk: docker
+app_file: app.py
 pinned: false
 ---
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
-=======
 # 🛡️ Fraud Detection RL Environment
 
 **OpenEnv-Compatible** | **Production-Ready** | **Hackathon Submission**
@@ -846,4 +843,4 @@ This environment is production-ready and optimized for the OpenEnv hackathon com
 ---
 
 **Status:** Production-ready for OpenEnv competition ✅
->>>>>>> f16469a (Initial commit - Fraud Investigator)
+
