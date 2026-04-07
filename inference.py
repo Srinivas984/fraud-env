@@ -1,5 +1,5 @@
 """
-inference.py — Inference script using OpenAI/HF with fallback rule-based mode.
+inference.py — Inference script using OpenAI/HF with advanced fraud detection.
 OpenEnv-compliant logging format.
 """
 
@@ -7,6 +7,7 @@ import os
 import httpx
 import json
 from typing import Optional
+from advanced_fraud_detector import FraudDetector
 
 
 class FraudEnvClient:
@@ -47,141 +48,35 @@ class FraudEnvClient:
         self.client.close()
 
 
+
+
+# Initialize detector once per inference run
+_detector = None
+
+def get_detector() -> FraudDetector:
+    """Get or create the fraud detector instance."""
+    global _detector
+    if _detector is None:
+        _detector = FraudDetector()
+    return _detector
+
+
 def fallback_decision(obs: dict, debug: bool = False) -> str:
-    """Smart fraud detection using pattern analysis."""
-    tx = obs["current_transaction"]
-    alerts = obs.get("alerts", [])
-    recent_history = obs.get("recent_history", [])
+    """
+    Advanced fraud detection using multi-signal risk scoring.
     
-    score = 0  # Fraud likelihood score (higher = more fraud)
-    
-    if debug:
-        print(f"  [DEBUG] TX ID: {tx.get('id')}, Amount: ${tx['amount']}, Merchant: {tx['merchant']}")
-        print(f"  [DEBUG] Recent history size: {len(recent_history)}")
-    
-    # PRIMARY SIGNALS - Impossible Travel
-    if "impossible travel" in " ".join(alerts).lower():
-        score += 5  # Very strong fraud signal
-        if debug: print(f"  [DEBUG] +5 impossible travel")
-    
-    # Unknown device signals
-    is_unknown_device = tx["device_id"].startswith("device_unknown")
-    if is_unknown_device:
-        score += 2
-        # Unknown device + high amount is very suspicious
-        if tx["amount"] > 1000:
-            score += 3
-            if debug: print(f"  [DEBUG] +5 unknown device + high amount")
-    
-    if is_unknown_device and tx.get("is_international"):
-        score += 2  # Cross-border with unknown device
-        if debug: print(f"  [DEBUG] +2 unknown device + international")
-    
-    # PATTERN ANALYSIS - Detect abnormal transaction amounts
-    category = tx.get("merchant_category", "")
-    merchant_lower = tx["merchant"].lower()
-    
-    # Analyze recent spending patterns
-    if recent_history:
-        recent_amounts = [t.get("amount", 0) for t in recent_history]
-        avg_recent = sum(recent_amounts) / len(recent_amounts) if recent_amounts else 0
-        recent_max = max(recent_amounts) if recent_amounts else 0
-        
-        if debug:
-            print(f"  [DEBUG] Recent amounts: {recent_amounts}, avg: ${avg_recent:.2f}")
-        
-        # Transaction dramatically exceeds typical pattern (fraud ring red flag)
-        if tx["amount"] > avg_recent * 50 and tx["amount"] > 500:
-            score += 2  # Big jump from user's normal behavior
-            if debug: print(f"  [DEBUG] +2 amount jump (${tx['amount']} vs avg ${avg_recent:.2f})")
-        
-        # Sudden wire/P2P transfers when user doesn't normally do this
-        is_money_movement = any(k in category for k in ["p2p", "wire", "transfer"])
-        is_typical_category = all(k not in category for k in ["p2p", "wire", "transfer", "atm"])
-        
-        recent_categories = [t.get("merchant_category", "") for t in recent_history]
-        typical_user_behavior = any(c == category for c in recent_categories) if recent_categories else False
-        
-        if is_money_movement and not typical_user_behavior and len(recent_history) > 0:
-            score += 2  # Unusual for this user to do wire transfers
-            if debug: print(f"  [DEBUG] +2 unusual wire/p2p for user")
-        
-        # Check for recent wire/p2p activity (fraud ring indicator)
-        recent_has_wire = any("p2p" in t.get("merchant_category", "") or "wire" in t.get("merchant", "").lower() 
-                             for t in recent_history)
-    else:
-        recent_has_wire = False
-    
-    # FRAUD RING DETECTION - Large P2P/Wire suspicious
-    if "wire" in merchant_lower or "deposit" in merchant_lower or "p2p" in category:
-        # ANY large wire/p2p is suspicious (mule detection)
-        if tx["amount"] > 3000:
-            score += 3  # Large wire/p2p - strong fraud signal
-            if debug: print(f"  [DEBUG] +3 large wire/p2p (${tx['amount']})")
-        elif tx["amount"] > 1000:
-            score += 2  # Moderate wire/p2p - significant alert
-            if debug: print(f"  [DEBUG] +2 moderate wire/p2p (${tx['amount']})")
-    
-    # STRUCTURED TRANSACTION PATTERNS - Matching amounts in/out (very strong signal)
-    if recent_history and category in ["p2p", "wire", "transfer"]:
-        # Check if there was a similar amount recently (sign of pass-through)
-        recent_amounts = [t.get("amount", 0) for t in recent_history]
-        # If amount matches something recent (within 10%), it's VERY suspicious (pass-through/mule)
-        for recent_amt in recent_amounts:
-            if 0.9 * recent_amt <= tx["amount"] <= 1.1 * recent_amt:
-                score += 3  # Amount matches - highly likely pass-through/mule  
-                if debug: print(f"  [DEBUG] +3 matching amount detected (${tx['amount']} ~ ${recent_amt}) - MULE BEHAVIOR")
-                break
-    
-    # STRUCTURING DETECTION - Multiple ATMs/rapid withdrawals
-    is_atm = "atm" in merchant_lower or "withdrawal" in category
-    if is_atm:
-        if tx["velocity_24h"] >= 2:
-            score += 4  # Multiple ATM withdrawals - classic structuring pattern
-            if debug: print(f"  [DEBUG] +4 multiple ATM withdrawals (velocity={tx['velocity_24h']})")
-        elif tx["amount"] >= 3000:  # Large single ATM withdrawal
-            # Large ATM after wire is VERY suspicious
-            points_added = 4 if recent_has_wire else 3
-            score += points_added
-            if debug: 
-                reason = "after wire deposit (STRUCTURING)" if recent_has_wire else "large ATM"
-                print(f"  [DEBUG] +{points_added} {reason} (${tx['amount']})")
-        elif tx["amount"] >= 1500:  # Moderate ATM withdrawal
-            points_added = 3 if recent_has_wire else 2
-            score += points_added
-            if debug:
-                reason = "after wire (structuring)" if recent_has_wire else "moderate amount"
-                print(f"  [DEBUG] +{points_added} moderate ATM withdrawal {reason}")
-    
-    # International + high velocity
-    if tx.get("is_international") and tx["velocity_24h"] > 5:
-        score += 1
-        if debug: print(f"  [DEBUG] +1 international + high velocity")
-    
-    # Very high amount (over typical monthly)
-    if tx["amount"] > 5000:
-        score += 1
-        if debug: print(f"  [DEBUG] +1 very high amount")
-    
-    # Multiple alerts compound suspicion
-    alert_count = len(alerts)
-    if alert_count > 2:
-        score += 1
-        if debug: print(f"  [DEBUG] +1 multiple alerts ({alert_count})")
-    if alert_count > 3:
-        score += 1
-        if debug: print(f"  [DEBUG] +1 many alerts ({alert_count})")
-    
-    if debug:
-        print(f"  [DEBUG] Final score: {score}")
-    
-    # DECISION LOGIC - Graduated response based on confidence
-    if score >= 5:
-        return "block"      # High confidence fraud
-    elif score >= 3:
-        return "flag"       # Medium confidence - needs review
-    else:
-        return "allow"      # Low fraud probability
+    Uses FraudDetector to analyze:
+    - Impossible travel patterns
+    - Device anomalies
+    - Behavioral deviation from user profile
+    - Velocity spikes
+    - Amount jumps
+    - Transaction sequence patterns
+    - Location anomalies
+    - Category switches
+    """
+    detector = get_detector()
+    return detector.decide_action(obs, debug=debug)
 
 
 def run_inference(
@@ -193,10 +88,11 @@ def run_inference(
     """Run inference on single task. Returns score in [0, 1]."""
     
     env = FraudEnvClient(base_url=base_url)
+    detector = get_detector()
     
     # Map task names to benchmark name
     benchmark_name = "fraud-detection"
-    model_name = "gpt-4-fallback"
+    model_name = "advanced-fraud-detector"
     
     success = False
     rewards = []
