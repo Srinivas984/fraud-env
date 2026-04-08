@@ -108,7 +108,7 @@ def episode_score(
     
     max_possible = (fraud_count * 1.0) + (legit_count * 0.5)
     if max_possible == 0:
-        return 1.0, "No transactions evaluated."
+        return 0.5, "No transactions evaluated."  # Return middle value instead of boundary
     
     total_reward = 0.0
     caught_fraud = 0
