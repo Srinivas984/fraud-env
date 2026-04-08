@@ -167,7 +167,15 @@ def run_inference(
         
         # Calculate final score from observation
         final_score = obs.get("final_score", sum(rewards) / len(rewards) if rewards else 0.0)
-        final_score = max(0.0, min(1.0, final_score))  # Clamp to [0, 1]
+        # Ensure score is strictly within (0, 1) not at boundaries
+        epsilon = 0.001
+        if final_score == 0.0:
+            final_score = epsilon
+        elif final_score >= 1.0:
+            final_score = 1.0 - epsilon
+        else:
+            # Clamp to range
+            final_score = max(epsilon, min(1.0 - epsilon, final_score))
         success = True
         
     except Exception as e:
