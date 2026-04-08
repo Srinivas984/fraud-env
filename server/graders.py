@@ -131,13 +131,14 @@ def episode_score(
             correct_allows += 1
     
     raw_score = total_reward / max_possible
-    # Clamp to [0, 1] then ensure strictly within (0, 1) with epsilon
+    # Clamp to [0, 1]
     clamped = max(0.0, min(1.0, raw_score))
-    # Avoid exact boundaries (0.0 or 1.0) by using epsilon
-    epsilon = 0.001
-    if clamped == 0.0:
+    
+    # Check boundaries BEFORE and AFTER rounding to prevent 0.0000 or 1.0000
+    epsilon = 0.0001  # Larger epsilon for rounding safety
+    if clamped <= epsilon:
         score = epsilon
-    elif clamped == 1.0:
+    elif clamped >= (1.0 - epsilon):
         score = 1.0 - epsilon
     else:
         score = clamped
