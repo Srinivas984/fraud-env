@@ -134,8 +134,9 @@ def episode_score(
     # Clamp to [0, 1]
     clamped = max(0.0, min(1.0, raw_score))
     
-    # Check boundaries BEFORE and AFTER rounding to prevent 0.0000 or 1.0000
-    epsilon = 0.0001  # Larger epsilon for rounding safety
+    # Check boundaries with large epsilon to prevent rounding to 0.0000 or 1.0000
+    # round(0.99995, 4) = 1.0000, so use epsilon >= 0.005 for safety
+    epsilon = 0.01  # Large enough to prevent rounding at boundaries
     if clamped <= epsilon:
         score = epsilon
     elif clamped >= (1.0 - epsilon):

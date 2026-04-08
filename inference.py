@@ -167,8 +167,9 @@ def run_inference(
         
         # Calculate final score from observation
         final_score = obs.get("final_score", sum(rewards) / len(rewards) if rewards else 0.5)
-        # Ensure score is strictly within (0, 1), even after rounding
-        epsilon = 0.0001
+        # Ensure score is strictly within (0, 1), even after rounding to 4 decimals
+        # round(0.99995, 4) = 1.0000, so use epsilon >= 0.005 for safety
+        epsilon = 0.01
         if final_score <= epsilon:
             final_score = epsilon
         elif final_score >= (1.0 - epsilon):
