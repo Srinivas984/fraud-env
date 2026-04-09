@@ -665,16 +665,16 @@ def task_adaptive_fraud_attack() -> Tuple[List[Transaction], Dict, Dict, str]:
 
 
 TASK_REGISTRY = {
-    "single_fraud": {
-        "loader": task_single_fraud,
-        "description": "EASY: Detect obvious fraud with impossible travel anomaly.",
-        "difficulty": 1,
-        "grader": "episode_score",
-    },
     "multi_pattern_fraud": {
         "loader": task_multi_pattern_fraud,
         "description": "MEDIUM: Detect fraud ring across multiple accounts.",
         "difficulty": 2,
+        "grader": "episode_score",
+    },
+    "single_fraud": {
+        "loader": task_single_fraud,
+        "description": "EASY: Detect obvious fraud with impossible travel anomaly.",
+        "difficulty": 1,
         "grader": "episode_score",
     },
     "adaptive_fraud_attack": {
