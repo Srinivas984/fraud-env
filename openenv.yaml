@@ -7,6 +7,15 @@ metadata:
   difficulty_levels: ["easy", "medium", "hard"]
   created: "2024-01-15"
 
+graders:
+  episode_score:
+    name: "Episode Score"
+    description: "Normalized fraud detection score"
+    min_score: 0.05
+    max_score: 0.95
+    score_type: "episode"
+    enabled: true
+
 tasks:
   - name: single_fraud
     difficulty: easy

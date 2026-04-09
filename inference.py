@@ -10,6 +10,7 @@ import json
 from typing import Optional
 from openai import OpenAI
 from advanced_fraud_detector import FraudDetector
+from server.tasks import TASK_REGISTRY
 
 # Environment variables (VALIDATOR CRITICAL)
 API_BASE_URL = os.getenv("API_BASE_URL", "https://Srinivas989-fraud-investigator-env.hf.space")
