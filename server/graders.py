@@ -106,7 +106,7 @@ def episode_score(
     fraud_count = sum(1 for v in ground_truth.values() if v == "fraud")
     legit_count = sum(1 for v in ground_truth.values() if v == "legit")
     
-    max_possible = (fraud_count * 1.0) + (legit_count * 0.5)
+    max_possible = (fraud_count * 1.0) + (legit_count * 0.5) + 0.5  # +0.5 makes perfect score ~0.91
     if max_possible == 0:
         return 0.5, "No transactions evaluated."  # Return middle value instead of boundary
     
@@ -131,18 +131,7 @@ def episode_score(
             correct_allows += 1
     
     raw_score = total_reward / max_possible
-    # Clamp to [0, 1]
-    clamped = max(0.0, min(1.0, raw_score))
-    
-    # Check boundaries with large epsilon to prevent rounding to 0.0000 or 1.0000
-    # round(0.99995, 4) = 1.0000, so use epsilon >= 0.005 for safety
-    epsilon = 0.01  # Large enough to prevent rounding at boundaries
-    if clamped <= epsilon:
-        score = epsilon
-    elif clamped >= (1.0 - epsilon):
-        score = 1.0 - epsilon
-    else:
-        score = clamped
+    score = max(0.05, min(0.95, raw_score))
     
     summary = (
         f"Fraud Caught: {caught_fraud}/{fraud_count} | "

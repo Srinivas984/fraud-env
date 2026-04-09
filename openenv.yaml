@@ -10,26 +10,32 @@ metadata:
 tasks:
   - name: single_fraud
     difficulty: easy
+    has_grader: true
+    grader: episode_score
     description: "5 transactions with 1 unmistakable fraud attempt"
     num_transactions: 5
     fraud_count: 1
-    max_score: 1.0
+    max_score: 0.91
     expected_agent_score: 0.85
 
   - name: multi_pattern_fraud
     difficulty: medium
+    has_grader: true
+    grader: episode_score
     description: "9 transactions with coordinated fraud ring (6 frauds)"
     num_transactions: 9
     fraud_count: 6
-    max_score: 1.0
+    max_score: 0.91
     expected_agent_score: 0.85
 
   - name: adaptive_fraud_attack
     difficulty: hard
+    has_grader: true
+    grader: episode_score
     description: "20 transactions with behavioral masking (8 frauds)"
     num_transactions: 20
     fraud_count: 8
-    max_score: 1.0
+    max_score: 0.91
     expected_agent_score: 0.50
 
 action_schema:

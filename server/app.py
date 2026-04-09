@@ -8,6 +8,7 @@ import json
 
 from server.models import FraudAction, FraudObservation
 from server.env_logic import FraudEnvironment
+from server.tasks import TASK_REGISTRY
 
 
 app = FastAPI(
@@ -63,6 +64,29 @@ async def step(action: FraudAction):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/tasks")
+async def get_tasks():
+    """
+    Get list of available tasks with grader metadata.
+    OpenEnv validator uses this to enumerate tasks.
+    
+    Returns:
+        dict with list of task configurations
+    """
+    return {
+        "tasks": [
+            {
+                "name": name,
+                "description": meta["description"],
+                "difficulty": meta["difficulty"],
+                "has_grader": True,
+                "grader": "episode_score"
+            }
+            for name, meta in TASK_REGISTRY.items()
+        ]
+    }
 
 
 @app.get("/state")
