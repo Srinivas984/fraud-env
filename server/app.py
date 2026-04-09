@@ -106,6 +106,48 @@ async def get_state():
     }
 
 
+@app.get("/logs")
+async def get_logs(logs: str = None):
+    """
+    Logs endpoint for HuggingFace monitoring.
+    
+    Args:
+        logs: Query parameter for log type (e.g., "container")
+    
+    Returns:
+        dict with logs or status
+    """
+    return {
+        "status": "ok",
+        "logs_type": logs or "default",
+        "message": "Fraud detection environment running"
+    }
+
+
+@app.get("/")
+async def root(logs: str = None):
+    """
+    Root endpoint. Handles both health checks and logs requests.
+    
+    Args:
+        logs: Optional query parameter for log type
+    
+    Returns:
+        dict with status and optional logs
+    """
+    if logs:
+        return {
+            "status": "ok",
+            "logs_type": logs,
+            "message": "Fraud detection environment running"
+        }
+    return {
+        "status": "ok",
+        "title": "Fraud Detection Environment",
+        "version": "1.0.0"
+    }
+
+
 @app.get("/health")
 async def health():
     """Health check endpoint."""
