@@ -75,18 +75,25 @@ async def get_tasks():
     Returns:
         dict with list of task configurations
     """
-    return {
-        "tasks": [
-            {
+    try:
+        tasks_list = []
+        for name, meta in TASK_REGISTRY.items():
+            task_info = {
                 "name": name,
-                "description": meta["description"],
-                "difficulty": meta["difficulty"],
+                "description": meta.get("description", ""),
+                "difficulty": meta.get("difficulty", 1),
                 "has_grader": True,
-                "grader": "episode_score"
+                "grader": meta.get("grader", "episode_score")
             }
-            for name, meta in TASK_REGISTRY.items()
-        ]
-    }
+            tasks_list.append(task_info)
+        
+        return {
+            "tasks": tasks_list,
+            "total_tasks": len(tasks_list),
+            "tasks_with_graders": len([t for t in tasks_list if t["has_grader"]])
+        }
+    except Exception as e:
+        return {"error": str(e), "tasks": []}
 
 
 @app.get("/state")
@@ -152,6 +159,12 @@ async def root(logs: str = None):
 async def health():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.get("/ready")
+async def readiness():
+    """Readiness check endpoint."""
+    return {"status": "ready", "tasks": len(TASK_REGISTRY)}
 
 
 @app.websocket("/ws")
