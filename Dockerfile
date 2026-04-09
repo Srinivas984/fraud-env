@@ -1,5 +1,6 @@
 FROM python:3.11-slim
 
+# Cache bust: 2026-04-09-rebuild
 WORKDIR /app
 
 COPY requirements.txt .
