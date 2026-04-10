@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Cache bust: 2026-04-09-v2-grader-fixes
+# Cache bust: 2026-04-10-v3-run-all-tasks
 WORKDIR /app
 
 COPY requirements.txt .
